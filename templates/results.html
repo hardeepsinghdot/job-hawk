@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Job Match Dashboard</title>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Style -->
+    <style>
+        body {
+            background: #001c30;
+            color: #dff6ff;
+            font-family: "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            margin: auto;
+            padding-top: 25px;
+        }
+
+        h1 {
+            font-size: 26px;
+            margin-bottom: 10px;
+            color: #00eaff;
+            text-shadow: 0 0 10px #00eaff;
+        }
+
+        .upload-link {
+            color: #00eaff;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .card {
+            background: rgba(0, 40, 70, 0.6);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 0 20px #003d5c;
+        }
+
+        .skill-tag {
+            background: #003d5c;
+            display: inline-block;
+            padding: 4px 10px;
+            margin: 4px;
+            border-radius: 8px;
+            color: #9ae8ff;
+            font-size: 13px;
+        }
+
+        canvas {
+            background: rgba(0, 20, 40, 0.4);
+            border-radius: 12px;
+            padding: 10px;
+        }
+
+        .job-card {
+            background: rgba(0, 30, 50, 0.8);
+            padding: 18px;
+            border-radius: 10px;
+            margin-top: 15px;
+            box-shadow: 0 0 10px #003d5c;
+        }
+
+        .job-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00eaff;
+        }
+
+        .ats-score-tag {
+            background: #ff6b8a;
+            padding: 4px 10px;
+            border-radius: 6px;
+            margin-left: 10px;
+            font-size: 12px;
+        }
+
+        .btn-apply {
+            background: #00eaff;
+            color: #001c30;
+            padding: 6px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <a href="/" class="upload-link">← Upload another resume</a>
+
+        <div class="card">
+            <h1>Job Match Dashboard</h1>
+            <p>
+                Found <b>{{ total_jobs }}</b> live job matches using SBERT semantic analysis + ATS scoring.
+            </p>
+
+            <p><b>Skills detected in your resume:</b></p>
+            {% for s in resume_skills %}
+                <span class="skill-tag">{{ s }}</span>
+            {% endfor %}
+        </div>
+
+        <!-- CHARTS -->
+        <div class="card" style="display: flex; gap: 20px;">
+            <div style="width: 55%;">
+                <h3>Top Job Similarities</h3>
+                <canvas id="simChart" height="200"></canvas>
+            </div>
+
+            <div style="width: 45%;">
+                <h3>Skill Coverage</h3>
+                <canvas id="skillChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- JOB LIST -->
+        <div class="card">
+            <h2>Matched Jobs</h2>
+
+            {% for j in jobs %}
+            <div class="job-card">
+                <div class="job-title">
+                    {{ loop.index }}. {{ j.title }}
+                    <span class="ats-score-tag">ATS: {{ j.ats_score }}%</span>
+                </div>
+
+                <p>{{ j.company }} — {{ j.location }}</p>
+                <p><b>Similarity:</b> {{ j.similarity }} | <b>Skill match:</b> {{ j.skill_match }}%</p>
+
+                <a href="{{ j.url }}" target="_blank" class="btn-apply">Apply</a>
+
+                {% if j.missing_skills %}
+                    <p><b>Missing skills:</b></p>
+                    {% for m in j.missing_skills %}
+                        <span class="skill-tag" style="background:#ff6b8a;">{{ m }}</span>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+    <!-- Charts Script -->
+    <script>
+        // Safety: Ensure values exist even if backend sends empty
+        const titles = {{ job_titles | tojson | safe }};
+        const scores = {{ sim_scores | tojson | safe }};
+        const cov = {{ coverage_stats | tojson | safe }};
+
+        // SIMILARITY CHART
+        const simCtx = document.getElementById("simChart").getContext("2d");
+        new Chart(simCtx, {
+            type: "bar",
+            data: {
+                labels: titles,
+                datasets: [{
+                    label: "Similarity Score",
+                    data: scores,
+                    backgroundColor: "#00eaff"
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: "#dff6ff" } }
+                },
+                scales: {
+                    x: { ticks: { color: "#dff6ff" } },
+                    y: { ticks: { color: "#dff6ff" }, beginAtZero: true, max: 1 }
+                }
+            }
+        });
+
+        // PIE CHART
+        const skillCtx = document.getElementById("skillChart").getContext("2d");
+        new Chart(skillCtx, {
+            type: "pie",
+            data: {
+                labels: ["Skills Covered", "Missing Skills"],
+                datasets: [{
+                    data: [cov.covered || 0, cov.missing || 0],
+                    backgroundColor: ["#00eaff", "#ff6b8a"]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: "#dff6ff" } }
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
