@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Applied Jobs – Job Hawk</title>
+    <meta name="viewport" content="width=device-width">
+
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --card-bg: #ffffff;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --accent: #0a84ff;
+            --border-soft: #e5e7eb;
+            --shadow-soft: 0 18px 45px rgba(15,23,42,0.08);
+            --radius-lg: 18px;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            font-family: system-ui, -apple-system, "SF Pro Text", Segoe UI, sans-serif;
+            color: var(--text-main);
+        }
+
+        .page-shell {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 16px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 22px;
+        }
+
+        .brand-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 1.45rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hawk-logo { font-size: 1.7rem; }
+
+        .tagline {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-left: 38px;
+            margin-top: -3px;
+        }
+
+        .apple-btn {
+            background: var(--accent);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            transition: 0.15s;
+        }
+
+        .apple-btn:hover { background: #0077ed; }
+
+        .card {
+            background: var(--card-bg);
+            box-shadow: var(--shadow-soft);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-soft);
+            padding: 20px 24px;
+        }
+
+        .job-card {
+            background: #f9fafb;
+            border: 1px solid var(--border-soft);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+
+        .job-title { font-size: 1.1rem; font-weight: 600; }
+        .job-meta { font-size: 0.9rem; color: var(--text-muted); }
+        .job-footer { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="page-shell">
+
+    <div class="top-bar">
+        <div class="brand-group">
+            <div class="brand">
+                <span class="hawk-logo">🦅</span>
+                Job Hawk
+            </div>
+            <div class="tagline">Spot your next job with precision.</div>
+        </div>
+
+        <a href="/" class="apple-btn">← Back to matcher</a>
+    </div>
+
+    <div class="card">
+        <h2 style="margin:0 0 12px 0;">Applied / Saved jobs</h2>
+        <p style="margin-top:0; font-size:0.9rem; color:var(--text-muted);">
+            Use this list as a simple tracker for roles you’ve saved from the matches page.
+        </p>
+
+        {% if jobs %}
+            {% for j in jobs %}
+                <div class="job-card">
+                    <div class="job-title">{{ j.title }}</div>
+                    <div class="job-meta">{{ j.company }}{% if j.location %} — {{ j.location }}{% endif %}</div>
+                    <div class="job-footer">Saved on {{ j.saved_at }}</div>
+                    <a href="{{ j.url }}" target="_blank" class="apple-btn" style="margin-top:8px; padding:6px 12px; font-size:0.8rem;">
+                        View listing
+                    </a>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="font-size:0.9rem; color:var(--text-muted); margin-top:8px;">
+                You haven’t saved any jobs yet. Go back to your matches and use the <strong>🔖 Save</strong> button.
+            </p>
+        {% endif %}
+    </div>
+
+</div>
+
+</body>
+</html>

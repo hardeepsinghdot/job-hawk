@@ -2,207 +2,555 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Job Match Dashboard</title>
+    <title>Job Hawk – Matches</title>
 
-    <!-- Chart.js -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Style -->
     <style>
+        :root {
+            --bg: #f5f5f7;
+            --card-bg: #ffffff;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --accent: #0a84ff;
+            --border-soft: #e5e7eb;
+            --shadow-soft: 0 18px 45px rgba(15,23,42,0.08);
+            --radius-lg: 18px;
+        }
+
+        * { box-sizing: border-box; }
+
         body {
-            background: #001c30;
-            color: #dff6ff;
-            font-family: "Segoe UI", sans-serif;
             margin: 0;
-            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                         "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
         }
 
-        .container {
-            width: 90%;
-            margin: auto;
-            padding-top: 25px;
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        .page-shell {
+            max-width: 1120px;
+            margin: 28px auto 60px;
+            padding: 0 16px;
         }
 
-        h1 {
-            font-size: 26px;
-            margin-bottom: 10px;
-            color: #00eaff;
-            text-shadow: 0 0 10px #00eaff;
+        .top-bar {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space_between;
+            margin-bottom: 22px;
         }
 
-        .upload-link {
-            color: #00eaff;
-            font-size: 14px;
-            margin-bottom: 20px;
-            display: inline-block;
+        .top-bar {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 22px;
         }
 
-        .card {
-            background: rgba(0, 40, 70, 0.6);
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 20px;
-            box-shadow: 0 0 20px #003d5c;
+        .brand-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 1.45rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hawk-logo { font-size: 1.7rem; }
+
+        .tagline {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-left: 38px;
+            margin-top: -4px;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .link-small { font-size: 0.85rem; }
+
+        .apple-btn {
+            background: var(--accent);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 8px 16px rgba(10,132,255,0.25);
+        }
+
+        .apple-btn:hover { background: #0077ed; }
+
+        .main-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-soft);
+            padding: 22px 22px 24px;
+            margin-bottom: 18px;
+        }
+
+        .main-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 6px; }
+        .main-subtitle { font-size: 0.95rem; color: var(--text-muted); margin-bottom: 12px; }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: #e5f0ff;
+            color: #1d4ed8;
+            font-size: 0.75rem;
+            margin-right: 6px;
+        }
+
+        .pill-dot {
+            width: 6px; height: 6px; border-radius: 999px; background: #22c55e;
+        }
+
+        .skills-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 14px;
+            margin-bottom: 6px;
         }
 
         .skill-tag {
-            background: #003d5c;
-            display: inline-block;
-            padding: 4px 10px;
-            margin: 4px;
-            border-radius: 8px;
-            color: #9ae8ff;
-            font-size: 13px;
+            display: inline-flex;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: #3730a3;
+            font-size: 0.78rem;
+            margin: 3px 4px 3px 0;
         }
+
+        .layout-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .chart-card {
+            flex: 1 1 340px;
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-soft);
+            box-shadow: var(--shadow-soft);
+            padding: 18px 20px 20px;
+        }
+
+        .chart-title { font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
 
         canvas {
-            background: rgba(0, 20, 40, 0.4);
+            background: #f9fafb;
             border-radius: 12px;
-            padding: 10px;
+            padding: 8px;
         }
 
+        .chart-explainer {
+            font-size: 0.84rem;
+            color: var(--text-muted);
+            margin-top: 10px;
+            line-height: 1.35;
+        }
+
+        .common-card {
+            margin-top: 16px;
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-soft);
+            box-shadow: var(--shadow-soft);
+            padding: 16px 20px 14px;
+        }
+
+        .common-title {
+            font-size: 0.98rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .missing-common-tag {
+            display: inline-flex;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: #fee2e2;
+            color: #b91c1c;
+            font-size: 0.78rem;
+            margin: 3px 4px 3px 0;
+        }
+
+        .jobs-card {
+            margin-top: 22px;
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-soft);
+            box-shadow: var(--shadow-soft);
+            padding: 20px 20px 10px;
+        }
+
+        .jobs-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .jobs-title { font-size: 1.1rem; font-weight: 600; }
+        .jobs-count { font-size: 0.85rem; color: var(--text-muted); }
+
         .job-card {
-            background: rgba(0, 30, 50, 0.8);
-            padding: 18px;
-            border-radius: 10px;
-            margin-top: 15px;
-            box-shadow: 0 0 10px #003d5c;
+            border-radius: 14px;
+            border: 1px solid #e5e7eb;
+            padding: 12px 14px;
+            margin-top: 12px;
+            background: #f9fafb;
+        }
+
+        .job-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 6px;
         }
 
         .job-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #00eaff;
+            font-size: 1.05rem;
+            font-weight: 600;
         }
 
-        .ats-score-tag {
-            background: #ff6b8a;
-            padding: 4px 10px;
-            border-radius: 6px;
-            margin-left: 10px;
-            font-size: 12px;
+        .job-meta {
+            font-size: 0.86rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .score-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .ats-badge,
+        .sim-badge {
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 999px;
+        }
+
+        .ats-badge { background: #f97373; color: #ffffff; }
+        .sim-badge { background: #e5f0ff; color: #1d4ed8; }
+
+        .recommended-pill {
+            display: inline-flex;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+        }
+
+        .job-footer-row {
+            margin-top: 6px;
+        }
+
+        .match-line {
+            font-size: 0.86rem;
+            color: var(--text-muted);
+        }
+
+        .btn-row {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .btn-apply {
-            background: #00eaff;
-            color: #001c30;
+            border-radius: 999px;
             padding: 6px 14px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: bold;
+            border: none;
+            background: var(--accent);
+            color: #ffffff;
+            font-size: 0.82rem;
+            cursor: pointer;
+        }
+
+        .btn-apply:hover { background: #0077ed; }
+
+        .btn-secondary {
+            border-radius: 999px;
+            padding: 6px 12px;
+            border: 1px solid var(--border-soft);
+            background: #ffffff;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .btn-secondary:hover { background: #f3f4f6; }
+
+        .btn-save {
+            border-radius: 999px;
+            padding: 6px 12px;
+            border: 1px solid var(--border-soft);
+            background: #ffffff;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .description-box {
+            display: none;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .missing-label {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .missing-skill-tag {
+            display: inline-flex;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #fee2e2;
+            color: #b91c1c;
+            font-size: 0.75rem;
+            margin: 3px 4px 3px 0;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
 
-        <a href="/" class="upload-link">← Upload another resume</a>
+<div class="page-shell">
 
-        <div class="card">
-            <h1>Job Match Dashboard</h1>
-            <p>
-                Found <b>{{ total_jobs }}</b> live job matches using SBERT semantic analysis + ATS scoring.
-            </p>
+    <div class="top-bar">
+        <div class="brand-group">
+            <div class="brand">
+                <span class="hawk-logo">🦅</span>
+                Job Hawk
+            </div>
+            <div class="tagline">Spot your next job with precision.</div>
+        </div>
 
-            <p><b>Skills detected in your resume:</b></p>
+        <div class="nav-actions">
+            <a href="/" class="link-small">← Upload another resume</a>
+            <a href="/applied-jobs" class="apple-btn">Applied Jobs</a>
+        </div>
+    </div>
+
+    <div class="main-card">
+        <div class="main-title">Job match overview</div>
+        <div class="main-subtitle">
+            Found <b>{{ total_jobs }}</b> jobs based on your resume and filters.
+        </div>
+
+        <div class="pill">
+            <span class="pill-dot"></span>
+            Resume skills detected
+        </div>
+
+        <div class="skills-label">Skills detected in your resume:</div>
+
+        {% if resume_skills %}
             {% for s in resume_skills %}
                 <span class="skill-tag">{{ s }}</span>
             {% endfor %}
-        </div>
-
-        <!-- CHARTS -->
-        <div class="card" style="display: flex; gap: 20px;">
-            <div style="width: 55%;">
-                <h3>Top Job Similarities</h3>
-                <canvas id="simChart" height="200"></canvas>
-            </div>
-
-            <div style="width: 45%;">
-                <h3>Skill Coverage</h3>
-                <canvas id="skillChart" height="200"></canvas>
-            </div>
-        </div>
-
-        <!-- JOB LIST -->
-        <div class="card">
-            <h2>Matched Jobs</h2>
-
-            {% for j in jobs %}
-            <div class="job-card">
-                <div class="job-title">
-                    {{ loop.index }}. {{ j.title }}
-                    <span class="ats-score-tag">ATS: {{ j.ats_score }}%</span>
-                </div>
-
-                <p>{{ j.company }} — {{ j.location }}</p>
-                <p><b>Similarity:</b> {{ j.similarity }} | <b>Skill match:</b> {{ j.skill_match }}%</p>
-
-                <a href="{{ j.url }}" target="_blank" class="btn-apply">Apply</a>
-
-                {% if j.missing_skills %}
-                    <p><b>Missing skills:</b></p>
-                    {% for m in j.missing_skills %}
-                        <span class="skill-tag" style="background:#ff6b8a;">{{ m }}</span>
-                    {% endfor %}
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
-
+        {% else %}
+            <div class="main-subtitle">No skills detected.</div>
+        {% endif %}
     </div>
 
-    <!-- Charts Script -->
-    <script>
-        // Safety: Ensure values exist even if backend sends empty
-        const titles = {{ job_titles | tojson | safe }};
-        const scores = {{ sim_scores | tojson | safe }};
-        const cov = {{ coverage_stats | tojson | safe }};
+    <div class="layout-row">
+        <div class="chart-card">
+            <div class="chart-title">Top job similarity scores</div>
+            <canvas id="simChart" height="220"></canvas>
 
-        // SIMILARITY CHART
-        const simCtx = document.getElementById("simChart").getContext("2d");
-        new Chart(simCtx, {
+            <p class="chart-explainer">
+                <strong>Similarity Score Guide:</strong><br>
+                • <b>0.60+</b> – Excellent match (strong alignment with your profile)<br>
+                • <b>0.50–0.59</b> – Good match (recommended to apply)<br>
+                • <b>0.40–0.49</b> – Moderate match (consider improving your resume)<br>
+                • <b>&lt; 0.40</b> – Weak match (low alignment with your experience)
+            </p>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">Overall skill coverage</div>
+            <canvas id="skillChart" height="220"></canvas>
+
+            <p class="chart-explainer">
+                <strong>Skill Coverage Explained:</strong>
+                This shows how many skills requested in job descriptions are present
+                in your resume versus missing. Missing skills are good candidates to
+                learn or highlight more clearly.
+            </p>
+        </div>
+    </div>
+
+    <div class="common-card">
+        <div class="common-title">Common missing skills across matched jobs</div>
+        <div class="main-subtitle" style="margin-bottom:8px;">
+            These are skills that appear frequently in job descriptions but are not
+            found in your resume.
+        </div>
+        {% if common_missing_skills %}
+            {% for s in common_missing_skills %}
+                <span class="missing-common-tag">{{ s }}</span>
+            {% endfor %}
+        {% else %}
+            <div class="main-subtitle">No common missing skills detected across jobs.</div>
+        {% endif %}
+    </div>
+
+    <div class="jobs-card">
+        <div class="jobs-header">
+            <div class="jobs-title">Matched jobs</div>
+            <div class="jobs-count">{{ total_jobs }} roles</div>
+        </div>
+
+        {% if jobs %}
+            {% for j in jobs %}
+                <div class="job-card">
+                    <div class="job-header-row">
+                        <div>
+                            {% if loop.index == 1 %}
+                                <div class="recommended-pill">Recommended</div>
+                            {% endif %}
+                            <div class="job-title">{{ loop.index }}. {{ j.title }}</div>
+                            <div class="job-meta">{{ j.company }} — {{ j.location }}</div>
+                        </div>
+
+                        <div class="score-column">
+                            <span class="ats-badge">ATS {{ j.ats_score }}%</span>
+                            <span class="sim-badge">Sim {{ j.similarity }}</span>
+                        </div>
+                    </div>
+
+                    <div class="job-footer-row">
+                        <div class="match-line">
+                            Skill match: {{ j.skill_match }}%
+                            {% if j.missing_skills %}
+                                • {{ j.missing_skills|length }} missing skill(s)
+                            {% endif %}
+                        </div>
+
+                        <div class="btn-row">
+                            <a href="{{ j.url }}" target="_blank">
+                                <button class="btn-apply" type="button">Apply</button>
+                            </a>
+
+                            <button class="btn-secondary" type="button"
+                                    onclick="toggleDescription({{ loop.index0 }})">
+                                View description
+                            </button>
+
+                            <form action="/applied-jobs" method="POST" style="display:inline;">
+                                <input type="hidden" name="title" value="{{ j.title }}">
+                                <input type="hidden" name="company" value="{{ j.company }}">
+                                <input type="hidden" name="location" value="{{ j.location }}">
+                                <input type="hidden" name="url" value="{{ j.url }}">
+                                <button class="btn-save" type="submit">🔖 Save</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="description-box" id="desc-{{ loop.index0 }}">
+                        {{ j.description }}
+                    </div>
+
+                    {% if j.missing_skills %}
+                        <div class="missing-label">Missing skills for this job:</div>
+                        {% for m in j.missing_skills %}
+                            <span class="missing-skill-tag">{{ m }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="main-subtitle">No jobs found.</div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    const titles = {{ job_titles | tojson | safe }};
+    const scores = {{ sim_scores | tojson | safe }};
+    const cov = {{ coverage_stats | tojson | safe }};
+
+    if (titles.length > 0) {
+        new Chart(document.getElementById("simChart"), {
             type: "bar",
             data: {
                 labels: titles,
                 datasets: [{
-                    label: "Similarity Score",
+                    label: "Similarity",
                     data: scores,
-                    backgroundColor: "#00eaff"
+                    backgroundColor: "#0a84ff88"
                 }]
             },
             options: {
-                responsive: true,
-                plugins: {
-                    legend: { labels: { color: "#dff6ff" } }
-                },
-                scales: {
-                    x: { ticks: { color: "#dff6ff" } },
-                    y: { ticks: { color: "#dff6ff" }, beginAtZero: true, max: 1 }
-                }
+                plugins: { legend: { display: false }},
+                scales: { y: { beginAtZero: true, max: 1 } }
             }
         });
+    }
 
-        // PIE CHART
-        const skillCtx = document.getElementById("skillChart").getContext("2d");
-        new Chart(skillCtx, {
-            type: "pie",
+    if (cov) {
+        new Chart(document.getElementById("skillChart"), {
+            type: "doughnut",
             data: {
-                labels: ["Skills Covered", "Missing Skills"],
+                labels: ["Covered", "Missing"],
                 datasets: [{
-                    data: [cov.covered || 0, cov.missing || 0],
-                    backgroundColor: ["#00eaff", "#ff6b8a"]
+                    data: [cov.covered, cov.missing],
+                    backgroundColor: ["#0a84ff88", "#d1d5db"]
                 }]
             },
             options: {
-                responsive: true,
-                plugins: {
-                    legend: { labels: { color: "#dff6ff" } }
-                }
+                plugins: { legend: { position: "bottom" }},
+                cutout: "58%"
             }
         });
-    </script>
+    }
+
+    function toggleDescription(idx) {
+        const el = document.getElementById("desc-" + idx);
+        if (!el) return;
+        el.style.display = (el.style.display === "block") ? "none" : "block";
+    }
+</script>
 
 </body>
 </html>
