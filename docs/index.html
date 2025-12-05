@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Resume Matcher (Static GH-Pages)</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 2rem auto; }
+    label { display:block; margin-top: .5rem }
+    .result { border:1px solid #ddd; padding: .5rem; margin-top:.5rem }
+  </style>
+</head>
+<body>
+  <h1>Resume Matcher (Static frontend)</h1>
+  <p>Replace <code>BACKEND_URL</code> below with your deployed Flask backend URL (e.g. https://your-app.onrender.com).</p>
+
+  <form id="uploadForm">
+    <label>Resume (PDF or DOCX): <input type="file" name="resume" accept=".pdf,.docx" required></label>
+    <label>Category:
+      <select name="category">
+        <option>All</option>
+        <option>Data / Analytics</option>
+        <option>Business / Strategy</option>
+        <option>Software / Engineering</option>
+        <option>Cloud / DevOps</option>
+        <option>Finance / Banking</option>
+        <option>Operations / Supply Chain</option>
+        <option>Marketing / Growth</option>
+      </select>
+    </label>
+    <label>Country: <input name="country" value="United States"></label>
+    <label>Location: <input name="location" placeholder="City or leave blank"></label>
+
+    <button type="submit">Analyze Resume</button>
+  </form>
+
+  <div id="status"></div>
+  <div id="results"></div>
+
+  <script>
+    // TODO: set your deployed backend URL here
+    const BACKEND_URL = 'https://YOUR_BACKEND_URL_HERE';
+
+    const form = document.getElementById('uploadForm');
+    const status = document.getElementById('status');
+    const results = document.getElementById('results');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      results.innerHTML = '';
+      status.textContent = 'Uploading and analyzing... (this may take a few seconds)';
+
+      const fd = new FormData(form);
+      try {
+        const resp = await fetch(BACKEND_URL + '/api/analyze', {
+          method: 'POST',
+          body: fd
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(()=>({error:'unknown'}));
+          status.textContent = 'Error: ' + (err.error || resp.statusText);
+          return;
+        }
+        const data = await resp.json();
+        status.textContent = 'Analysis complete — showing top results';
+
+        const top = data.jobs.slice(0, 10);
+        top.forEach(j => {
+          const d = document.createElement('div');
+          d.className = 'result';
+          d.innerHTML = `<strong>${escapeHtml(j.title)}</strong> — ${escapeHtml(j.company)}<br>
+                         <em>${escapeHtml(j.location)}</em><br>
+                         ATS Score: ${j.ats_score} — Skill match: ${j.skill_match}%<br>
+                         <a href="${escapeHtml(j.url)}" target="_blank">Job Link</a><br>
+                         <div>${escapeHtml(j.description)}</div>`;
+          results.appendChild(d);
+        });
+
+        // show resume skills and missing
+        const skills = document.createElement('div');
+        skills.innerHTML = '<h3>Your detected skills</h3><pre>' + escapeHtml(JSON.stringify(data.resume_skills, null, 2)) + '</pre>';
+        results.appendChild(skills);
+
+      } catch (err) {
+        console.error(err);
+        status.textContent = 'Network error: ' + err.message;
+      }
+    });
+
+    function escapeHtml(s){
+      if(!s) return '';
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>

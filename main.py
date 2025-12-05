@@ -4,13 +4,66 @@ import json
 from datetime import datetime
 from collections import Counter
 
-import requests
+try:
+    import requests
+    HAS_REQUESTS = True
+except Exception:
+    requests = None
+    HAS_REQUESTS = False
 from flask import Flask, request, render_template, redirect, url_for
 from werkzeug.utils import secure_filename
 
-import fitz          # PyMuPDF for PDF
-import docx          # python-docx for DOCX
-from sentence_transformers import SentenceTransformer, util
+# optional heavy dependencies: handle missing packages gracefully so
+# the app can start even if they are not installed in the environment.
+try:
+    import fitz          # PyMuPDF for PDF
+    HAS_FITZ = True
+except Exception:
+    fitz = None
+    HAS_FITZ = False
+
+try:
+    import docx          # python-docx for DOCX
+    HAS_DOCX = True
+except Exception:
+    docx = None
+    HAS_DOCX = False
+
+try:
+    import PyPDF2
+    HAS_PYPDF = True
+except Exception:
+    PyPDF2 = None
+    HAS_PYPDF = False
+
+try:
+    import pytesseract
+    HAS_PYTESSACT = True
+except Exception:
+    pytesseract = None
+    HAS_PYTESSACT = False
+
+try:
+    from pdf2image import convert_from_path
+    HAS_PDF2IMAGE = True
+except Exception:
+    convert_from_path = None
+    HAS_PDF2IMAGE = False
+
+try:
+    from PIL import Image
+    HAS_PIL = True
+except Exception:
+    Image = None
+    HAS_PIL = False
+
+try:
+    from sentence_transformers import SentenceTransformer, util
+    HAS_SENT_TRANS = True
+except Exception:
+    SentenceTransformer = None
+    util = None
+    HAS_SENT_TRANS = False
 
 # ----------------------------------------------------
 # Flask Setup
@@ -29,7 +82,7 @@ APPLIED_JOBS_FILE = os.path.join(BASE_DIR, "applied_jobs.json")
 # ----------------------------------------------------
 # Model + Skills Config
 # ----------------------------------------------------
-model = SentenceTransformer("all-MiniLM-L6-v2")
+model = SentenceTransformer("all-MiniLM-L6-v2") if HAS_SENT_TRANS else None
 
 SKILL_KEYWORDS = [
     "sql", "excel", "tableau", "power bi", "python", "r", "pandas",
@@ -110,15 +163,63 @@ def extract_text_from_resume(filepath: str) -> str:
     ext = filepath.rsplit(".", 1)[1].lower()
 
     if ext == "pdf":
-        text = ""
-        with fitz.open(filepath) as doc:
-            for page in doc:
-                text += page.get_text()
-        return text
+        # Try PyMuPDF first, then PyPDF2 as a fallback
+        if HAS_FITZ:
+            text = ""
+            with fitz.open(filepath) as doc:
+                for page in doc:
+                    text += page.get_text()
+            return text
+
+        if HAS_PYPDF:
+            try:
+                reader = PyPDF2.PdfReader(filepath)
+                text = []
+                for p in reader.pages:
+                    try:
+                        text.append(p.extract_text() or "")
+                    except Exception:
+                        text.append("")
+                return "\n".join(text)
+            except Exception:
+                return ""
+
+        # No PDF extraction lib available
+        # If we have OCR libs, try OCR on PDF pages (use pdf2image when available)
+        if HAS_PYTESSACT and HAS_PDF2IMAGE and HAS_PIL:
+            try:
+                images = convert_from_path(filepath, dpi=200)
+                ocr_text = []
+                for img in images:
+                    try:
+                        ocr_text.append(pytesseract.image_to_string(img))
+                    except Exception:
+                        ocr_text.append("")
+                return "\n".join(ocr_text)
+            except Exception:
+                return ""
+
+        return ""
 
     if ext == "docx":
-        document = docx.Document(filepath)
-        return "\n".join(p.text for p in document.paragraphs)
+        if HAS_DOCX:
+            document = docx.Document(filepath)
+            return "\n".join(p.text for p in document.paragraphs)
+
+        # Fallback: read the document.xml from the .docx zip and extract text
+        try:
+            import zipfile
+            import xml.etree.ElementTree as ET
+
+            with zipfile.ZipFile(filepath) as z:
+                with z.open('word/document.xml') as docxml:
+                    tree = ET.parse(docxml)
+                    root = tree.getroot()
+                    # Word XML uses the w:t tag for text
+                    texts = [t.text for t in root.iter() if t.tag.endswith('}t') and t.text]
+                    return "\n".join(texts)
+        except Exception:
+            return ""
 
     return ""
 
@@ -142,6 +243,10 @@ def fetch_jobs_from_adzuna(country_code: str,
                            max_results: int = 50):
     if not country_code:
         country_code = "us"
+
+    if not HAS_REQUESTS:
+        print("[fetch-jobs] requests library not installed; skipping API call")
+        return []
 
     url = f"https://api.adzuna.com/v1/api/jobs/{country_code}/search/1"
 
@@ -437,10 +542,50 @@ def index():
 
     resume_text = extract_text_from_resume(save_path)
     if not resume_text.strip():
-        return "Could not extract text from resume."
+        # Provide a helpful diagnostic so the user can understand why extraction failed
+        try:
+            size = os.path.getsize(save_path)
+        except Exception:
+            size = None
+
+        ext = filename.rsplit(".", 1)[1].lower() if "." in filename else ""
+
+        available = []
+        if HAS_FITZ:
+            available.append("pymupdf")
+        if HAS_PYPDF:
+            available.append("pypdf2")
+        if HAS_DOCX:
+            available.append("python-docx")
+        if HAS_PYTESSACT:
+            available.append("pytesseract")
+        if HAS_PDF2IMAGE:
+            available.append("pdf2image")
+
+        msg_lines = [
+            "Could not extract text from resume.",
+            f"Detected extension: {ext}",
+            f"Saved file size: {size if size is not None else 'unknown'} bytes",
+            f"Available extractors: {', '.join(available) if available else 'none'}",
+            "Possible reasons:",
+            " - The file is a scanned image PDF (needs OCR).",
+            " - The required libraries are not installed (install pymupdf or python-docx).",
+            " - The .docx is password-protected or malformed.",
+            "Suggestions:",
+            " - Try opening the resume in a text editor to confirm it's not an image-only PDF.",
+            " - Install dependencies: pip install pymupdf python-docx PyPDF2 pdf2image pytesseract",
+            " - For OCR (image PDFs) also install system packages: macOS: brew install tesseract poppler",
+            " - If you want, attach the resume file and I can inspect it.",
+        ]
+
+        # log to server console for debugging
+        print("[resume-extract-fail]", {"path": save_path, "ext": ext, "size": size, "available": available})
+
+        return "\n".join(msg_lines)
 
     resume_skills = extract_skills_from_text(resume_text)
-    resume_emb = model.encode(resume_text, convert_to_tensor=True)
+    # embeddings may not be available if sentence_transformers is not installed
+    resume_emb = model.encode(resume_text, convert_to_tensor=True) if model else None
 
     # ATS v2: resume-level features
     resume_years = estimate_years_experience(resume_text)
@@ -476,8 +621,14 @@ def index():
         job_text = f"{title}. {clean_desc}"
         job_text_norm = normalize_text(job_text)
 
-        job_emb = model.encode(job_text, convert_to_tensor=True)
-        sim = util.pytorch_cos_sim(resume_emb, job_emb).item()
+        job_emb = model.encode(job_text, convert_to_tensor=True) if model else None
+        if model and util is not None and resume_emb is not None and job_emb is not None:
+            try:
+                sim = util.pytorch_cos_sim(resume_emb, job_emb).item()
+            except Exception:
+                sim = 0.0
+        else:
+            sim = 0.0
         sim = max(sim, 0.0)
 
         job_skills = {s for s in SKILL_KEYWORDS if s in job_text_norm}
